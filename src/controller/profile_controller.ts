@@ -99,10 +99,11 @@ export class ProfileController extends BaseController {
   }
 
   private async create(req: express.Request, res: express.Response): Promise<void> {
-    const { name, exchange, apiKey, secret } = req.body;
+    const { name, exchange, environment, apiKey, secret } = req.body;
     this.profileService.createProfile({
       name,
       exchange,
+      environment,
       apiKey,
       secret,
     });
@@ -111,9 +112,9 @@ export class ProfileController extends BaseController {
 
   private async update(req: express.Request, res: express.Response): Promise<void> {
     const { id } = req.params;
-    const { name, exchange, apiKey, secret } = req.body;
+    const { name, exchange, environment, apiKey, secret } = req.body;
 
-    this.profileService.updateProfile(id, { name, exchange, apiKey, secret });
+    this.profileService.updateProfile(id, { name, exchange, environment, apiKey, secret });
     res.redirect('/profiles/' + id);
   }
 

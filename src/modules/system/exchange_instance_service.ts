@@ -8,6 +8,8 @@ interface CachedExchange {
   expiresAt: number;
 }
 
+type ProfileEnvironment = 'live' | 'demo' | 'testnet';
+
 /**
  * Manages CCXT exchange instance lifecycle.
  *
@@ -18,6 +20,35 @@ interface CachedExchange {
 export class ExchangeInstanceService {
   private publicInstances = new Map<string, CachedExchange>();
   private authedInstances = new Map<string, CachedExchange>();
+
+  private getProfileEnvironment(profile: Profile): ProfileEnvironment {
+    return profile.environment || 'live';
+  }
+
+  private configureEnvironment(exchange: ccxt.Exchange, profile: Profile): void {
+    const environment = this.getProfileEnvironment(profile);
+
+    if (environment === 'live') {
+      return;
+    }
+
+    if (profile.exchange === 'bybit' && environment === 'demo') {
+      const bybitExchange = exchange as ccxt.Exchange & { enableDemoTrading?: (enable?: boolean) => void };
+      if (typeof bybitExchange.enableDemoTrading !== 'function') {
+        throw new Error('Bybit demo trading is not supported by the installed CCXT version');
+      }
+
+      bybitExchange.enableDemoTrading(true);
+      return;
+    }
+
+    if (typeof exchange.setSandboxMode === 'function') {
+      exchange.setSandboxMode(true);
+      return;
+    }
+
+    throw new Error(`Exchange "${profile.exchange}" does not support ${environment} mode in this project`);
+  }
 
   /**
    * Returns a cached public (unauthenticated) exchange instance with markets already loaded.
@@ -66,6 +97,7 @@ export class ExchangeInstanceService {
       enableRateLimit: true
     });
 
+    this.configureEnvironment(exchange, profile);
     await exchange.loadMarkets();
 
     this.authedInstances.set(profile.id, {

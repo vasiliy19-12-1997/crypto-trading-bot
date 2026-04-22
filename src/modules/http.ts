@@ -160,17 +160,31 @@ export class Http {
     // Mount the main router at root
     app.use('/', mainRouter);
 
-    const ip = this.systemUtil.getConfig('webserver.ip', '0.0.0.0');
+    const ip = this.systemUtil.getConfig('webserver.ip', process.platform === 'win32' ? '127.0.0.1' : '0.0.0.0');
     const port = this.portOverride ?? this.systemUtil.getConfig('webserver.port', 8080);
 
-    app.listen(port, ip);
+    const server = app.listen(port, ip, () => {
+      console.log(`Webserver listening on: http://${ip}:${port}`);
 
-    console.log(`Webserver listening on: http://${ip}:${port}`);
+      // Prefill historical candles for configured dashboard pairs on startup
+      this.services.getDashboardSettingsController(this.templateHelpers).enqueuePrefill();
 
-    // Prefill historical candles for configured dashboard pairs on startup
-    this.services.getDashboardSettingsController(this.templateHelpers).enqueuePrefill();
+      // Start live WebSocket candle subscriptions for dashboard pairs
+      this.services.getCcxtCandleWatchService().start();
+    });
 
-    // Start live WebSocket candle subscriptions for dashboard pairs
-    this.services.getCcxtCandleWatchService().start();
+    server.on('error', (error: NodeJS.ErrnoException) => {
+      if (server.listening) {
+        return;
+      }
+
+      if (error.code === 'EACCES' || error.code === 'EADDRINUSE') {
+        console.error(`Unable to start webserver on http://${ip}:${port}: ${error.code}. Try another port with --port.`);
+        return;
+      }
+
+      console.error(`Unable to start webserver on http://${ip}:${port}:`, error);
+    });
+
   }
 }

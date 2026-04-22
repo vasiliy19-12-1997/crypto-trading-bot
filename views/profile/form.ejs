@@ -25,6 +25,19 @@
                     </select>
                 </div>
 
+                <div class="mb-4">
+                    <label for="environment" class="block text-sm font-medium text-gray-700 mb-1">Environment</label>
+                    <select id="environment" name="environment"
+                            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="live" <%= !profile || !profile.environment || profile.environment === 'live' ? 'selected' : '' %>>Live</option>
+                        <option value="demo" <%= profile && profile.environment === 'demo' ? 'selected' : '' %>>Demo</option>
+                        <option value="testnet" <%= profile && profile.environment === 'testnet' ? 'selected' : '' %>>Testnet</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">
+                        For Bybit use <strong>Demo</strong> with demo API keys. For most other exchanges use <strong>Testnet</strong> if sandbox keys are available.
+                    </p>
+                </div>
+
                 <!-- API Key -->
                 <div class="mb-4">
                     <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key</label>

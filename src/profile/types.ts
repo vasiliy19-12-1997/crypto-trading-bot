@@ -2,6 +2,7 @@ export interface Profile {
   id: string;
   name: string;
   exchange: string;
+  environment?: 'live' | 'demo' | 'testnet';
   apiKey?: string;
   secret?: string;
   bots?: Bot[];

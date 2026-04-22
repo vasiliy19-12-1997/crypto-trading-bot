@@ -66,7 +66,15 @@ interface TalibModule {
 }
 
 // Lazy load modules (using dynamic import for heavy native modules)
-const getTalib = (): TalibModule => require('talib');
+const getTalib = (): TalibModule => {
+  try {
+    return require('talib');
+  } catch {
+    throw new Error(
+      "The optional dependency 'talib' is not available. Install the Visual Studio C++ build tools required by TA-Lib on Windows, then reinstall dependencies if you need TA-Lib-backed indicators."
+    );
+  }
+};
 const getTechnicalIndicators = () => require('technicalindicators') as typeof import('technicalindicators');
 
 interface PivotPointsWithWicksResult {
@@ -366,25 +374,20 @@ export const indicators = {
     const { options = {} } = indicator;
     const stddev = (options.stddev as number) || 2;
     const length = (options.length as number) || 20;
-
-    const result = talibExecute({
-      name: 'BBANDS',
-      startIdx: 0,
-      endIdx: source.length - 1,
-      inReal: source.slice(),
-      optInTimePeriod: length,
-      optInNbDevUp: stddev,
-      optInNbDevDn: stddev,
-      optInMAType: 0
+    const { BollingerBands } = getTechnicalIndicators();
+    const result = BollingerBands.calculate({
+      period: length,
+      stdDev: stddev,
+      values: source.slice()
     });
 
     const finalResult: Array<{ upper: number; middle: number; lower: number; width: number }> = [];
-    for (let i = 0; i < result.nbElement; i++) {
+    for (const item of result) {
       finalResult.push({
-        upper: result.result.outRealUpperBand[i],
-        middle: result.result.outRealMiddleBand[i],
-        lower: result.result.outRealLowerBand[i],
-        width: (result.result.outRealUpperBand[i] - result.result.outRealLowerBand[i]) / result.result.outRealMiddleBand[i]
+        upper: item.upper,
+        middle: item.middle,
+        lower: item.lower,
+        width: (item.upper - item.lower) / item.middle
       });
     }
     return { [indicator.key]: finalResult };
@@ -477,35 +480,61 @@ export const indicators = {
 
   // Money Flow Index - requires candles
   mfi: async (source: CandleSource, indicator: Indicator): Promise<IndicatorResult> => {
-    return executeCandleTalib(source, indicator, {
-      name: 'MFI',
-      inputs: ['high', 'low', 'close', 'volume'],
-      optInputs: { length: { talibKey: 'optInTimePeriod', default: 14 } }
-    });
+    const { options = {} } = indicator;
+    const length = (options.length as number) || 14;
+    const { MFI } = getTechnicalIndicators();
+
+    return {
+      [indicator.key]: MFI.calculate({
+        period: length,
+        high: source.map(c => c.high),
+        low: source.map(c => c.low),
+        close: source.map(c => c.close),
+        volume: source.map(c => c.volume)
+      })
+    };
   },
 
   // Simple Moving Average - requires price array
   sma: async (source: PriceSource, indicator: Indicator): Promise<IndicatorResult> => {
-    return executeSimpleTalib(source, indicator, {
-      name: 'SMA',
-      optInputs: { length: { talibKey: 'optInTimePeriod', default: 14 } }
-    });
+    const { options = {} } = indicator;
+    const length = (options.length as number) || 14;
+    const { SMA } = getTechnicalIndicators();
+
+    return {
+      [indicator.key]: SMA.calculate({
+        period: length,
+        values: source.slice()
+      })
+    };
   },
 
   // Exponential Moving Average - requires price array
   ema: async (source: PriceSource, indicator: Indicator): Promise<IndicatorResult> => {
-    return executeSimpleTalib(source, indicator, {
-      name: 'EMA',
-      optInputs: { length: { talibKey: 'optInTimePeriod', default: 14 } }
-    });
+    const { options = {} } = indicator;
+    const length = (options.length as number) || 14;
+    const { EMA } = getTechnicalIndicators();
+
+    return {
+      [indicator.key]: EMA.calculate({
+        period: length,
+        values: source.slice()
+      })
+    };
   },
 
   // Relative Strength Index - requires price array
   rsi: async (source: PriceSource, indicator: Indicator): Promise<IndicatorResult> => {
-    return executeSimpleTalib(source, indicator, {
-      name: 'RSI',
-      optInputs: { length: { talibKey: 'optInTimePeriod', default: 14 } }
-    });
+    const { options = {} } = indicator;
+    const length = (options.length as number) || 14;
+    const { RSI } = getTechnicalIndicators();
+
+    return {
+      [indicator.key]: RSI.calculate({
+        period: length,
+        values: source.slice()
+      })
+    };
   },
 
   // Hull Moving Average - can take candles or price array
@@ -534,11 +563,18 @@ export const indicators = {
 
   // Commodity Channel Index - requires candles
   cci: async (source: CandleSource, indicator: Indicator): Promise<IndicatorResult> => {
-    return executeCandleTalib(source, indicator, {
-      name: 'CCI',
-      inputs: ['high', 'low', 'close'],
-      optInputs: { length: { talibKey: 'optInTimePeriod', default: 20 } }
-    });
+    const { options = {} } = indicator;
+    const length = (options.length as number) || 20;
+    const { CCI } = getTechnicalIndicators();
+
+    return {
+      [indicator.key]: CCI.calculate({
+        period: length,
+        high: source.map(c => c.high),
+        low: source.map(c => c.low),
+        close: source.map(c => c.close)
+      })
+    };
   },
 
   // Volume Weighted MA - requires candles
@@ -593,22 +629,22 @@ export const indicators = {
   // MACD - requires price array
   macd: async (source: PriceSource, indicator: Indicator): Promise<IndicatorResult> => {
     const { options = {} } = indicator;
-    const result = talibExecute({
-      name: 'MACD',
-      startIdx: 0,
-      endIdx: source.length - 1,
-      inReal: source.slice(),
-      optInFastPeriod: (options.fast_length as number) || 12,
-      optInSlowPeriod: (options.slow_length as number) || 26,
-      optInSignalPeriod: (options.signal_length as number) || 9
+    const { MACD } = getTechnicalIndicators();
+    const result = MACD.calculate({
+      values: source.slice(),
+      fastPeriod: (options.fast_length as number) || 12,
+      slowPeriod: (options.slow_length as number) || 26,
+      signalPeriod: (options.signal_length as number) || 9,
+      SimpleMAOscillator: false,
+      SimpleMASignal: false
     });
 
     const finalResult: Array<{ macd: number; signal: number; histogram: number }> = [];
-    for (let i = 0; i < result.nbElement; i++) {
+    for (const item of result) {
       finalResult.push({
-        macd: result.result.outMACD[i],
-        signal: result.result.outMACDSignal[i],
-        histogram: result.result.outMACDHist[i]
+        macd: item.MACD,
+        signal: item.signal,
+        histogram: item.histogram
       });
     }
     return { [indicator.key]: finalResult };

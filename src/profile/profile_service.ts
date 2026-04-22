@@ -42,6 +42,7 @@ export class ProfileService {
       id: data.id || this.generateId(),
       name: data.name || '',
       exchange: data.exchange || '',
+      environment: data.environment || 'live',
       apiKey: data.apiKey,
       secret: data.secret,
     };
@@ -62,6 +63,7 @@ export class ProfileService {
     const updated: Profile = {
       ...existing,
       ...data,
+      environment: data.environment ?? existing.environment ?? 'live',
       id: existing.id,
     };
 

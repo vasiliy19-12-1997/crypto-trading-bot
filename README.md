@@ -40,7 +40,7 @@ sudo apt-get install build-essential
 ### Start
 
 ```
-npm install --production
+npm install --omit=dev
 npm start
 ```
 
@@ -52,6 +52,8 @@ npm start
 ```
 open browser: http://127.0.0.1:8080
 ```
+
+On Windows, the `talib` package is a native optional dependency. If it fails to build, the bot can still install and start, but features or strategies that depend on TA-Lib indicators will require the Visual Studio C++ build tools and a successful reinstall of `talib`.
 
 ## Web UI
 

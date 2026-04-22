@@ -7,7 +7,7 @@
  * Not for production use — for testing and demonstration only.
  */
 
-import strategy, { StrategyBase, TypedStrategyContext, StrategySignal, type TypedIndicatorDefinition } from '@strategy';
+import { StrategyBase, TypedStrategyContext, StrategySignal } from '@strategy';
 
 // ============== Strategy Options ==============
 
@@ -20,11 +20,7 @@ export interface NoopOptions {
 
 // ============== Indicator Definition ==============
 
-export type NoopIndicators = {
-  bb: TypedIndicatorDefinition<'bb'>;
-  rsi: TypedIndicatorDefinition<'rsi'>;
-  mfi: TypedIndicatorDefinition<'mfi'>;
-};
+export type NoopIndicators = Record<string, never>;
 
 // ============== Strategy Implementation ==============
 
@@ -36,11 +32,7 @@ export class Noop extends StrategyBase<NoopIndicators, NoopOptions> {
   }
 
   defineIndicators(): NoopIndicators {
-    return {
-      bb: strategy.indicator.bb(),
-      rsi: strategy.indicator.rsi(),
-      mfi: strategy.indicator.mfi(),
-    };
+    return {};
   }
 
   async execute(context: TypedStrategyContext<NoopIndicators>, signal: StrategySignal): Promise<void> {
